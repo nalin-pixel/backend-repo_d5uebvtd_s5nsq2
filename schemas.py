@@ -1,48 +1,70 @@
 """
-Database Schemas
+Database Schemas for Hacksters Portfolio
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Each Pydantic model represents a MongoDB collection. The collection name is the
+lowercased class name (e.g., TeamMember -> "teammember").
 
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+These schemas are consumed by the backend endpoints for validation and by tools
+that introspect the /schema endpoint.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, HttpUrl, EmailStr
 
-# Example schemas (replace with your own):
+# ---------------------------
+# Organization / Site Content
+# ---------------------------
+class Organization(BaseModel):
+    name: str = Field(..., description="Organization name")
+    founded_year: int = Field(..., description="Year founded")
+    mission: str = Field(..., description="Mission statement")
+    description: Optional[str] = Field(None, description="Longer description")
+    logo_url: Optional[HttpUrl] = Field(None, description="Logo URL")
+    socials: dict = Field(default_factory=dict, description="Map of social links")
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
+class Stats(BaseModel):
+    patents: int = Field(0, ge=0, description="Patents filed")
+    team_size: int = Field(0, ge=0, description="Current team size")
+    achievements: int = Field(0, ge=0, description="Major achievements count")
+
+# ---------
+# Timeline
+# ---------
+EventType = Literal["win", "participated"]
+
+class Event(BaseModel):
+    title: str = Field(..., description="Event name")
+    date: str = Field(..., description="Date string, e.g., 2023-11-01")
+    venue: str = Field(..., description="Venue / Location")
+    type: EventType = Field(..., description="win or participated")
+    position: Optional[str] = Field(None, description="1st, 2nd, 3rd, Champion, etc. When type=win")
+    description: Optional[str] = Field(None, description="Short description")
+    photos: List[HttpUrl] = Field(default_factory=list, description="Event photo URLs")
+
+# -------------
+# Team Members
+# -------------
+class TeamMember(BaseModel):
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    role: str = Field(..., description="Role / Title")
+    nickname: Optional[str] = Field(None, description="Display name")
+    bio: Optional[str] = Field(None, description="Short bio")
+    skills: List[str] = Field(default_factory=list, description="Skill tags")
+    email: Optional[EmailStr] = Field(None, description="Email address")
+    phone: Optional[str] = Field(None, description="Phone number")
+    photo_url: Optional[HttpUrl] = Field(None, description="Headshot URL")
+    instagram: Optional[HttpUrl] = None
+    linkedin: Optional[HttpUrl] = None
+    github: Optional[HttpUrl] = None
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+# ---------
+# Contact
+# ---------
+class ContactSubmission(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
+    company: Optional[str] = None
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+# Note: The Flames database viewer will automatically read these from /schema
